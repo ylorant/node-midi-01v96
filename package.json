@@ -1,0 +1,22 @@
+{
+  "name": "midi-01v96",
+  "version": "1.0.0",
+  "description": "NodeJS library to control Yamaha 01v96 mixers through MIDI",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "midi",
+    "yamaha",
+    "01v96"
+  ],
+  "author": "Yohann Lorant <yohann.lorant@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "midi": "^2.0.0"
+  },
+  "devDependencies": {
+    "korg-nanokontrol-studio": "^1.1.0"
+  }
+}

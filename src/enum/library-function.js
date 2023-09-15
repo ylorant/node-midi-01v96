@@ -1,0 +1,21 @@
+let LibraryFunction = {
+    SCENE_RECALL: 0x00,
+    EQLIB_RECALL: 0x01,
+    GATELIB_RECALL: 0x02,
+    COMPLIB_RECALL: 0x03,
+    EFFLIB_RECALL: 0x04,
+    CHLIB_RECALL: 0x06,
+    INPATCH_RECALL: 0x07,
+    OUTPATCH_RECALL: 0x08,
+
+    SCENE_STORE: 0x20,
+    EQLIB_STORE: 0x21,
+    GATELIB_STORE: 0x22,
+    COMPLIB_STORE: 0x23,
+    EFFLIB_STORE: 0x24,
+    CHLIB_STORE: 0x26,
+    INPATCH_STORE: 0x27,
+    OUTPATCH_STORE: 0x28
+};
+
+module.exports = LibraryFunction;

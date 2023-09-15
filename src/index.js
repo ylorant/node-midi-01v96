@@ -1,18 +1,30 @@
 const EventEmitter = require('events');
 const Midi = require('midi');
 
-const MixerEvent = require('./event');
+const MixerEventType = require('./event/event-type');
 
 // Constants
 const SYSEX_HEADER = [0xF0, 0x43, 0x00, 0x3E];
 const CHANNEL_COUNT = 32;
 const AUX_COUNT = 8;
 const BUS_COUNT = 8;
+const MASTER_COUNT = AUX_COUNT + BUS_COUNT;
+const IN_GROUP_COUNT = 8;
+const OUT_GROUP_COUNT = 4;
+const GROUP_COUNT = IN_GROUP_COUNT + OUT_GROUP_COUNT;
 
+// Enums
 const SubStatus = require('./enum/sub-status');
 const DataType = require('./enum/data-types');
 const MixerElement = require('./enum/mixer-elements');
 const ParameterFormat = require('./enum/parameter-format');
+const LibraryFunction = require('./enum/library-function');
+
+// Event types
+const SceneEvent = require('./event/scene');
+const FunctionCallEvent = require('./event/function-call');
+const SetupElements = require('./enum/setup-elements');
+const RemoteKey = require('./enum/remote-key');
 
 class Yamaha01v96 extends EventEmitter
 {
@@ -32,6 +44,8 @@ class Yamaha01v96 extends EventEmitter
         this.input.on("message", this.onMidiMessage.bind(this));
         this.input.ignoreTypes(false, false, false);
     }
+
+    /// LIFECYCLE ///
 
     /**
      * Gets the available compatible MIDI devices.
@@ -55,7 +69,7 @@ class Yamaha01v96 extends EventEmitter
             let deviceName = this.input.getPortName(i);
             let debugMsg = i + ": " + deviceName;
 
-            if(deviceName.match(/01v96/i) || allDevices) {
+            if (deviceName.match(/01v96/i) || allDevices) {
                 devices.input[i] = deviceName;
                 debugMsg += " (match)";
             }
@@ -71,7 +85,7 @@ class Yamaha01v96 extends EventEmitter
             var deviceName = this.output.getPortName(i);
             let debugMsg = i + ": " + deviceName;
 
-            if(deviceName.match(/01v96/i) || allDevices) {
+            if (deviceName.match(/01v96/i) || allDevices) {
                 devices.output[i] = deviceName;
                 debugMsg += " (match)";
             }
@@ -89,21 +103,21 @@ class Yamaha01v96 extends EventEmitter
     connect(midiInput = null, midiOutput = null)
     {
         // Auto-discover devices if needed
-        if(!midiInput || !midiOutput) {
+        if (!midiInput || !midiOutput) {
             let devices = this.getDevices();
             
-            if(!midiInput) {
+            if (!midiInput) {
                 this.emit("debug", "No input device ID provided, auto-discovering it.");
                 midiInput = parseInt(Object.keys(devices.input)[0]);
             }
             
-            if(!midiOutput) {
+            if (!midiOutput) {
                 this.emit("debug", "No output device ID provided, auto-discovering it.");
                 midiOutput = parseInt(Object.keys(devices.output)[0]);
             }
         }
 
-        if(!midiInput || !midiOutput) {
+        if (!midiInput || !midiOutput) {
             this.emit("error", "No device discovered.");
             return;
         }
@@ -132,10 +146,20 @@ class Yamaha01v96 extends EventEmitter
     onMidiMessage(deltaTime, msg)
     {
         this.emit("debug", "<- recv: " + msg.map((v) => v.toString(16).padStart(2, '0').toUpperCase()).join(' '));
-        let event = MixerEvent.parseMessage(msg, this);
 
+        // Ignore if the message isn't a SysEx with the good protocol
+        if (msg[0] != 0xF0 || msg[1] != 0x43 || msg[3] != 0x3E) {
+            return null;
+        }
+
+        // Ignore the messages if it's less than 14 bytes long
+        if (msg.length < 12) {
+            return null;
+        }
+
+        let event = this.parseEventType(msg);
         if (event) {
-            this.emit("debug", "Event: " + event.type + '; channel: ' + event.channel + '; value: ' + event.value);
+            this.emit("debug", "Event: " + Object.entries(event).map((e) => e.join(': ')).join('; '));
             this.emit(event.type, event);
         }
     }
@@ -153,12 +177,24 @@ class Yamaha01v96 extends EventEmitter
         this.output.sendMessage(msg);
     }
 
-    parameterChange(dataType, element, parameter, channel, data = [], format = ParameterFormat.UNIVERSAL)
+    parameterChange(dataType, element, parameter, channel, extraData = [], format = ParameterFormat.UNIVERSAL)
     {
+        let data = [];
+
+        // Convert parameter and channel to arrays if single byte, to add flexibility to those parameters
+        parameter = parameter instanceof Array ? parameter : [parameter];
+        channel = channel instanceof Array ? channel : [channel];
+
+        // Build the data structure to send to the mixer
+        data = data
+            .concat(parameter)
+            .concat(channel)
+            .concat(extraData);
+
         this.emit("debug", "Parameter change: " + Array.prototype.join.call(arguments, ['; ']));
         this.send(
             SubStatus.PARAMETER_CHANGE, 
-            [format, dataType, element, parameter, channel].concat(data)
+            [format, dataType, element].concat(data)
         );
     }
 
@@ -169,6 +205,20 @@ class Yamaha01v96 extends EventEmitter
             SubStatus.PARAMETER_REQUEST, 
             [format, dataType, element, parameter, channel].concat(extraData)
         );
+    }
+
+    /// EVENT MANAGEMENT ///
+    
+    parseEventType(msg)
+    {
+        // Handle data types
+        switch (msg[5]) {
+            case DataType.EDIT_BUFFER:
+                return SceneEvent.fromMessage(msg, this);
+            
+            case DataType.FUNCTION_CALL:
+                return FunctionCallEvent.fromMessage(msg, this);
+        }
     }
 
     /// CONTROL FUNCTIONS ///
@@ -197,19 +247,25 @@ class Yamaha01v96 extends EventEmitter
         }
     }
 
+    // Meter
+
     requestMeterUpdates()
     {
         this.emit("debug", "Requesting meter updates...");
         this.parameterRequest(DataType.REMOTE_METER, 0x00, 0x00, 0x00, [0, 32], ParameterFormat.YAMAHA_01V96);
-        this.send(
-            SubStatus.PARAMETER_REQUEST, 
-            [ParameterFormat.YAMAHA_01V96, DataType.REMOTE_METER, 0x00, 0x00, 0x00, 0, 32]
-        );
     }
+
+    remoteKeypress(key)
+    {
+        this.emit("debug", "Clearing solo...");
+        this.parameterChange(DataType.REMOTE_KEY, 0x00, key[0], key[1], [0x01], ParameterFormat.YAMAHA_01V96);
+    }
+
+    // Buffer edit (direct edit actions)
 
     setChannelOn(channel, status)
     {
-        if(channel < 1 || channel > CHANNEL_COUNT) {
+        if (channel < 1 || channel > CHANNEL_COUNT) {
             this.emit('error', 'Invalid channel number ' + channel);
             return;
         }
@@ -220,7 +276,7 @@ class Yamaha01v96 extends EventEmitter
 
     getChannelOn(channel)
     {
-        if(channel < 1 || channel > 32) {
+        if (channel < 1 || channel > 32) {
             this.emit('error', 'Invalid channel number ' + channel);
             return;
         }
@@ -238,7 +294,7 @@ class Yamaha01v96 extends EventEmitter
      */
     setChannelLevel(channel, level)
     {
-        if(channel < 1 || channel > CHANNEL_COUNT) {
+        if (channel < 1 || channel > CHANNEL_COUNT) {
             this.emit('error', 'Invalid channel number ' + channel);
             return;
         }
@@ -255,13 +311,152 @@ class Yamaha01v96 extends EventEmitter
      */
     getChannelLevel(channel)
     {
-        if(channel < 1 || channel > CHANNEL_COUNT) {
+        if (channel < 1 || channel > CHANNEL_COUNT) {
             this.emit('error', 'Invalid channel number ' + channel);
             return;
         }
 
         this.emit("debug", "Requesting channel " + channel + " level");
         this.parameterRequest(DataType.EDIT_BUFFER, MixerElement.CHANNEL_FADER, 0x00, channel - 1);
+    }
+
+    // Library management (stores/recalls)
+
+    libraryStoreRecall(func, parameter, channel = null)
+    {
+        if (channel === null) {
+            channel = 256;
+        }
+
+        this.parameterChange(DataType.FUNCTION_CALL, func, this.word2Data(parameter), this.word2Data(channel));
+    }
+
+    /**
+     * Recalls a scene.
+     * 
+     * @param {number} sceneId The scene ID to recall 
+     */
+    recallScene(sceneId)
+    {
+        this.emit("debug", "Recalling scene #" + sceneId + "...");
+        this.libraryStoreRecall(LibraryFunction.SCENE_RECALL, sceneId);
+    }
+
+    /**
+     * Store current settings in the given scene ID.
+     * 
+     * @param {number} sceneId The scene ID to store settings in.
+     */
+    storeScene(sceneId)
+    {
+        this.emit("debug", "Storing scene #" + sceneId + "...");
+        this.libraryStoreRecall(LibraryFunction.SCENE_STORE, sceneId);
+    }
+
+    // Setup (a lot of stuff, for now mainly solos)
+
+    /**
+     * Clears all active solos.
+     * This sends a remote key, way simpler than sending the solo clear commands for each channel. 
+     */
+    clearSolo()
+    {
+        this.remoteKeypress(RemoteKey.SOLO_CLEAR);
+    }
+
+    /**
+     * Sets the solo status for a specific channel
+     * 
+     * @param {number} channel The channel to set the solo status of.
+     * @param {boolean} solo True to enable solo, false to disable it.
+     */
+    soloChannel(channel, solo)
+    {
+        if (channel < 1 || channel > CHANNEL_COUNT) {
+            this.emit('error', 'Invalid channel number ' + channel);
+            return;
+        }
+
+        this.parameterChange(DataType.SETUP_MEMORY, SetupElements.SOLO_CH_ON, 0x00, channel - 1, this.on2Data(solo), ParameterFormat.YAMAHA_01V96);
+    }
+
+    /**
+     * Sets the solo status for a master (output) channel (aux, out, matrix).
+     * 
+     * 
+     */
+    soloMasterChannel(channel, solo)
+    {
+        if (channel < 1 || channel > MASTER_COUNT) {
+            this.emit('error', 'Invalid master channel number ' + channel);
+            return;
+        }
+
+        this.parameterChange(DataType.SETUP_MEMORY, SetupElements.SOLO_MASTER_ON, 0x00, channel - 1, this.on2Data(solo), ParameterFormat.YAMAHA_01V96);
+    }
+
+    /**
+     * Sets the solo status for a specific auxiliary output.
+     * 
+     * @param {number} aux The auxiliary output channel to solo (1-8).
+     * @param {boolean} solo True to enable solo, false to disable it.
+     */
+    soloAuxOut(aux, solo)
+    {
+        if (aux < 1 || aux > AUX_COUNT) {
+            this.emit('error', 'Invalid aux number ' + channel);
+            return;
+        }
+
+        this.soloMasterChannel(aux, solo);
+    }
+
+    /**
+     * Sets the solo status for a specific bus output.
+     * 
+     * @param {number} bus The bus channel to solo (1-8).
+     * @param {boolean} solo True to enable solo, false to disable it.
+     */
+    soloBusOut(bus, solo)
+    {
+        if (bus < 1 || bus > BUS_COUNT) {
+            this.emit('error', 'Invalid bus number ' + channel);
+            return;
+        }
+
+        this.soloMasterChannel(AUX_COUNT + bus, solo);
+    }
+
+    /**
+     * Sets the solo status for an input group.
+     * 
+     * @param {number} group The group number, corresponding to it's letter index (A=1, B=2, etc.)
+     * @param {boolean} solo True to enable solo, false to disable it.
+     */
+    soloInGroup(group, solo)
+    {
+        if (group < 1 || group > IN_GROUP_COUNT) {
+            this.emit('error', 'Invalid in group number ' + group);
+            return;
+        }
+
+        this.parameterChange(DataType.SETUP_MEMORY, SetupElements.GROUP_SOLO_ON, 0x00, group - 1, this.on2Data(solo), ParameterFormat.YAMAHA_01V96);
+    }
+
+    /**
+     * Sets the solo status for an output group.
+     * 
+     * @param {number} group The group number, corresponding to it's letter index (Q=1, R=2, etc.)
+     * @param {boolean} solo True to enable solo, false to disable it.
+     */
+    soloOutGroup(group, solo)
+    {
+        if (group < 1 || group > OUT_GROUP_COUNT) {
+            this.emit('error', 'Invalid out group number ' + group);
+            return;
+        }
+
+        this.parameterChange(DataType.SETUP_MEMORY, SetupElements.GROUP_SOLO_MASTER_ON, 0x00, group - 1, this.on2Data(solo), ParameterFormat.YAMAHA_01V96);
     }
 
     /// UTILITIES ///
@@ -296,6 +491,15 @@ class Yamaha01v96 extends EventEmitter
         }
 
         return [0, 0, value>>7, value&0x7F];
+    }
+
+    /**
+     * Converts a 16-bit (word) value into an byte array to incorporate into a message
+     * @param {number} value The 16-bit value to convert
+     */
+    word2Data(value)
+    {
+        return [value>>7, value&0x7F];
     }
 }
 

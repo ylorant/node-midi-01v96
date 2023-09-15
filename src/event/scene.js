@@ -1,26 +1,51 @@
-let MixerElement = require('./mixer-elements');
+const MixerElement = require("../enum/mixer-elements");
+const MixerEvent = require("./event");
+const MixerEventType = require("./event-type");
 
-let MixerEventType = {
-    CHANNEL_LEVEL: "channelLevel",
-    CHANNEL_ON: "channelOn",
+class SceneEvent extends MixerEvent
+{
+    constructor()
+    {
+        super(MixerEventType.SCENE);
 
-    fromMixerElement: function(mixeEl)
+        this.channel = null;
+        this.value = null;
+    }
+
+    static fromMessage(msg, mixer)
+    {
+        let event = new SceneEvent();
+        event.type = event.typeFromMixerElement(msg[6]) ?? event.type;
+        event.channel = msg[8] + 1;
+        
+        // Getting the value parsing function and computing the value with it
+        event.value = null;
+        let parseValueFunc = event.getParseValueFunc();
+
+        if (parseValueFunc) {
+            event.value = parseValueFunc(msg.slice(9, 13), mixer);
+        }
+
+        return event;
+    }
+
+    typeFromMixerElement(mixeEl)
     {
         switch (mixeEl) {
-            case MixerElement.CHANNEL_FADER: return this.CHANNEL_LEVEL;
-            case MixerElement.CHANNEL_ON: return this.CHANNEL_ON;
+            case MixerElement.CHANNEL_FADER: return MixerEventType.CHANNEL_LEVEL;
+            case MixerElement.CHANNEL_ON: return MixerEventType.CHANNEL_ON;
             default: return null;
         }
-    },
+    }
 
-    getParseValueFunc: function(eventType)
+    getParseValueFunc()
     {
-        switch (eventType) {
+        switch (this.type) {
             case MixerEventType.CHANNEL_LEVEL: return this.parseFaderData;
             case MixerEventType.CHANNEL_ON: return this.parseOnData;
             default: return null;
         }
-    },
+    }
 
     /**
      * Parses fader data from the mixer and gives out the actual volume in percent.
@@ -29,7 +54,7 @@ let MixerEventType = {
      * @param {Yamaha01v96} mixer The mixer instance, to fetch settings
      * @returns The parsed fader between 0 and 100.
      */
-    parseFaderData: function(data, mixer)
+    parseFaderData(data, mixer)
     {
         let parsedValue = (data[2]<<7) + data[3];
 
@@ -51,12 +76,18 @@ let MixerEventType = {
         }
 
         return parsedValue;
-    },
+    }
 
-    parseOnData: function(data)
+    /**
+     * Parses on/off data from the mixer.
+     * 
+     * @param {array} data Fader data from the mixer.
+     * @returns 
+     */
+    parseOnData(data)
     {
         return !!data[3];
     }
 }
 
-module.exports = MixerEventType;
+module.exports = SceneEvent;

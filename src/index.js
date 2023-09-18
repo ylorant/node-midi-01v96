@@ -1,8 +1,6 @@
 const EventEmitter = require('events');
 const Midi = require('midi');
 
-const MixerEventType = require('./event/event-type');
-
 // Constants
 const SYSEX_HEADER = [0xF0, 0x43, 0x00, 0x3E];
 const CHANNEL_COUNT = 32;
@@ -15,16 +13,17 @@ const GROUP_COUNT = IN_GROUP_COUNT + OUT_GROUP_COUNT;
 
 // Enums
 const SubStatus = require('./enum/sub-status');
-const DataType = require('./enum/data-types');
-const MixerElement = require('./enum/mixer-elements');
+const DataType = require('./enum/data-type');
+const MixerElement = require('./enum/mixer-element');
 const ParameterFormat = require('./enum/parameter-format');
 const LibraryFunction = require('./enum/library-function');
 
 // Event types
 const SceneEvent = require('./event/scene');
 const FunctionCallEvent = require('./event/function-call');
-const SetupElements = require('./enum/setup-elements');
+const SetupElement = require('./enum/setup-element');
 const RemoteKey = require('./enum/remote-key');
+const SetupEvent = require('./event/setup');
 
 class Yamaha01v96 extends EventEmitter
 {
@@ -218,6 +217,9 @@ class Yamaha01v96 extends EventEmitter
             
             case DataType.FUNCTION_CALL:
                 return FunctionCallEvent.fromMessage(msg, this);
+            
+            case DataType.SETUP_MEMORY:
+                return SetupEvent.fromMessage(msg, this);
         }
     }
 
@@ -377,7 +379,7 @@ class Yamaha01v96 extends EventEmitter
             return;
         }
 
-        this.parameterChange(DataType.SETUP_MEMORY, SetupElements.SOLO_CH_ON, 0x00, channel - 1, this.on2Data(solo), ParameterFormat.YAMAHA_01V96);
+        this.parameterChange(DataType.SETUP_MEMORY, SetupElement.SOLO_CH_ON, 0x00, channel - 1, this.on2Data(solo), ParameterFormat.YAMAHA_01V96);
     }
 
     /**
@@ -392,7 +394,7 @@ class Yamaha01v96 extends EventEmitter
             return;
         }
 
-        this.parameterChange(DataType.SETUP_MEMORY, SetupElements.SOLO_MASTER_ON, 0x00, channel - 1, this.on2Data(solo), ParameterFormat.YAMAHA_01V96);
+        this.parameterChange(DataType.SETUP_MEMORY, SetupElement.SOLO_MASTER_ON, 0x00, channel - 1, this.on2Data(solo), ParameterFormat.YAMAHA_01V96);
     }
 
     /**
@@ -440,7 +442,7 @@ class Yamaha01v96 extends EventEmitter
             return;
         }
 
-        this.parameterChange(DataType.SETUP_MEMORY, SetupElements.GROUP_SOLO_ON, 0x00, group - 1, this.on2Data(solo), ParameterFormat.YAMAHA_01V96);
+        this.parameterChange(DataType.SETUP_MEMORY, SetupElement.GROUP_SOLO_ON, 0x00, group - 1, this.on2Data(solo), ParameterFormat.YAMAHA_01V96);
     }
 
     /**
@@ -456,7 +458,7 @@ class Yamaha01v96 extends EventEmitter
             return;
         }
 
-        this.parameterChange(DataType.SETUP_MEMORY, SetupElements.GROUP_SOLO_MASTER_ON, 0x00, group - 1, this.on2Data(solo), ParameterFormat.YAMAHA_01V96);
+        this.parameterChange(DataType.SETUP_MEMORY, SetupElement.GROUP_SOLO_MASTER_ON, 0x00, group - 1, this.on2Data(solo), ParameterFormat.YAMAHA_01V96);
     }
 
     /// UTILITIES ///

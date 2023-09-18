@@ -1,4 +1,4 @@
-let DataType = require('../enum/data-types');
+let DataType = require('../enum/data-type');
 
 class MixerEvent
 {

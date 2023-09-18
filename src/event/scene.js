@@ -1,4 +1,4 @@
-const MixerElement = require("../enum/mixer-elements");
+const MixerElement = require("../enum/mixer-element");
 const MixerEvent = require("./event");
 const MixerEventType = require("./event-type");
 
@@ -29,9 +29,9 @@ class SceneEvent extends MixerEvent
         return event;
     }
 
-    typeFromMixerElement(mixeEl)
+    typeFromMixerElement(mixerEl)
     {
-        switch (mixeEl) {
+        switch (mixerEl) {
             case MixerElement.CHANNEL_FADER: return MixerEventType.CHANNEL_LEVEL;
             case MixerElement.CHANNEL_ON: return MixerEventType.CHANNEL_ON;
             default: return null;

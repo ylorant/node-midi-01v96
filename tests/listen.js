@@ -6,4 +6,3 @@ mixer.on("debug", (msg) => console.log(msg));
 mixer.on("error", (msg) => console.error(msg));
 
 mixer.connect(1, 1);
-mixer.soloOutGroup(1, true);

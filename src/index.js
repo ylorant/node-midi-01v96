@@ -410,7 +410,8 @@ class Yamaha01v96 extends EventEmitter
             return;
         }
 
-        this.soloMasterChannel(aux, solo);
+        // Aux channels start from the end of the bus channels on the master layer
+        this.soloMasterChannel(BUS_COUNT + aux, solo);
     }
 
     /**
@@ -426,7 +427,7 @@ class Yamaha01v96 extends EventEmitter
             return;
         }
 
-        this.soloMasterChannel(AUX_COUNT + bus, solo);
+        this.soloMasterChannel(bus, solo);
     }
 
     /**

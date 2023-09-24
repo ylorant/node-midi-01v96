@@ -9,7 +9,6 @@ const BUS_COUNT = 8;
 const MASTER_COUNT = AUX_COUNT + BUS_COUNT;
 const IN_GROUP_COUNT = 8;
 const OUT_GROUP_COUNT = 4;
-const GROUP_COUNT = IN_GROUP_COUNT + OUT_GROUP_COUNT;
 
 // Enums
 const SubStatus = require('./enum/sub-status');
@@ -278,13 +277,13 @@ class Yamaha01v96 extends EventEmitter
 
     getChannelOn(channel)
     {
-        if (channel < 1 || channel > 32) {
+        if (channel < 1 || channel > CHANNEL_COUNT) {
             this.emit('error', 'Invalid channel number ' + channel);
             return;
         }
         
         this.emit("debug", "Requesting channel " + channel + " on status");
-        this.parameterRequest(DataType.EDIT_BUFFER, MixerElement.CHANNEL_ON, 0x00, channel - 1);        
+        this.parameterRequest(DataType.EDIT_BUFFER, MixerElement.CHANNEL_ON, 0x00, channel - 1);
     }
 
     /**
@@ -367,6 +366,22 @@ class Yamaha01v96 extends EventEmitter
     }
 
     /**
+     * Requests the solo status for a specific input channel.
+     * 
+     * @param {number} channel The channel to request the solo status of.
+     */
+    getChannelSolo(channel)
+    {
+        if (channel < 1 || channel > CHANNEL_COUNT) {
+            this.emit('error', 'Invalid channel number ' + channel);
+            return;
+        }
+        
+        this.emit("debug", "Requesting channel " + channel + " solo status");
+        this.parameterRequest(DataType.SETUP_MEMORY, SetupElement.SOLO_CH_ON, 0x00, channel - 1, [], ParameterFormat.YAMAHA_01V96);
+    }
+
+    /**
      * Sets the solo status for a specific channel
      * 
      * @param {number} channel The channel to set the solo status of.
@@ -380,6 +395,21 @@ class Yamaha01v96 extends EventEmitter
         }
 
         this.parameterChange(DataType.SETUP_MEMORY, SetupElement.SOLO_CH_ON, 0x00, channel - 1, this.on2Data(solo), ParameterFormat.YAMAHA_01V96);
+    }
+
+    /**
+     * Requests the solo status for a specific master channel.
+     * 
+     * @param {number} channel The channel to request the solo status of.
+     */
+    getMasterChannelSolo(channel)
+    {
+        if (channel < 1 || channel > MASTER_COUNT) {
+            this.emit('error', 'Invalid master channel number ' + channel);
+            return;
+        }
+        
+        this.parameterRequest(DataType.SETUP_MEMORY, SetupElement.SOLO_MASTER_ON, 0x00, channel - 1, [], ParameterFormat.YAMAHA_01V96);
     }
 
     /**
@@ -398,6 +428,22 @@ class Yamaha01v96 extends EventEmitter
     }
 
     /**
+     * Requests solo status for an auxiliary output channel.
+     * 
+     * @param {number} aux The aux out channel number to get solo status of.
+     */
+    getAuxOutSolo(aux)
+    {
+        if (aux < 1 || aux > AUX_COUNT) {
+            this.emit('error', 'Invalid aux number ' + aux);
+            return;
+        }
+
+        // Aux channels start from the end of the bus channels on the master layer
+        this.getMasterChannelSolo(BUS_COUNT + aux);
+    }
+
+    /**
      * Sets the solo status for a specific auxiliary output.
      * 
      * @param {number} aux The auxiliary output channel to solo (1-8).
@@ -406,12 +452,27 @@ class Yamaha01v96 extends EventEmitter
     soloAuxOut(aux, solo)
     {
         if (aux < 1 || aux > AUX_COUNT) {
-            this.emit('error', 'Invalid aux number ' + channel);
+            this.emit('error', 'Invalid aux number ' + aux);
             return;
         }
 
         // Aux channels start from the end of the bus channels on the master layer
         this.soloMasterChannel(BUS_COUNT + aux, solo);
+    }
+
+    /**
+     * Requests solo status for a bus output channel.
+     * 
+     * @param {number} bus The bus out channel number to get solo status of.
+     */
+    getBusOutSolo(bus)
+    {
+        if (bus < 1 || bus > BUS_COUNT) {
+            this.emit('error', 'Invalid bus number ' + bus);
+            return;
+        }
+
+        this.getMasterChannelSolo(bus);
     }
 
     /**
@@ -431,6 +492,21 @@ class Yamaha01v96 extends EventEmitter
     }
 
     /**
+     * Requests solo status for an in group master channel.
+     * 
+     * @param {number} group The in group master channel number to get solo status of.
+     */
+    getInGroupSolo(group)
+    {
+        if (group < 1 || group > IN_GROUP_COUNT) {
+            this.emit('error', 'Invalid group number ' + group);
+            return;
+        }
+
+        this.parameterRequest(DataType.SETUP_MEMORY, SetupElement.GROUP_SOLO_ON, 0x00, group - 1, [], ParameterFormat.YAMAHA_01V96);
+    }
+
+    /**
      * Sets the solo status for an input group.
      * 
      * @param {number} group The group number, corresponding to it's letter index (A=1, B=2, etc.)
@@ -444,6 +520,21 @@ class Yamaha01v96 extends EventEmitter
         }
 
         this.parameterChange(DataType.SETUP_MEMORY, SetupElement.GROUP_SOLO_ON, 0x00, group - 1, this.on2Data(solo), ParameterFormat.YAMAHA_01V96);
+    }
+
+    /**
+     * Requests solo status for an out group master channel.
+     * 
+     * @param {number} group The out group master channel number to get solo status of.
+     */
+    getOutGroupSolo(group)
+    {
+        if (group < 1 || group > OUT_GROUP_COUNT) {
+            this.emit('error', 'Invalid group number ' + group);
+            return;
+        }
+
+        this.parameterRequest(DataType.SETUP_MEMORY, SetupElement.GROUP_SOLO_MASTER_ON, 0x00, group - 1, [], ParameterFormat.YAMAHA_01V96);
     }
 
     /**
@@ -471,10 +562,10 @@ class Yamaha01v96 extends EventEmitter
 
     // 10bit fader values are transmitted in 4 bytes
     // 00000000 00000000 00000nnn 0nnnnnnn
-    fader2Data(value)
+    fader2Data(value, isMaster = false)
     {
         // According to the range, the conversion method isn't the same
-        if (this.faderRange == Yamaha01v96.RANGE_ABSOLUTE) {
+        if (this.faderRange == Yamaha01v96.RANGE_ABSOLUTE || isMaster) {
             // Depending on the fader resolution, convert the percentage to the correct value
             let maxVal = this.faderResolution == Yamaha01v96.RES_HIGH ? 1024 : 255;
             value = Math.round((value * maxVal) / 100);

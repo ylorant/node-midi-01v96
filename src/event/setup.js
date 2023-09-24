@@ -3,6 +3,8 @@ const MixerEvent = require("./event");
 const MixerEventType = require("./event-type");
 const { fromMessage } = require("./scene");
 
+const BUS_COUNT = 8;
+
 class SetupEvent extends MixerEvent
 {
     constructor()
@@ -20,7 +22,7 @@ class SetupEvent extends MixerEvent
 
         event.type = event.typeFromElement(msg[6], msg[7]);
         event.parameter = msg[7];
-        event.channel = msg[8];
+        event.channel = event.parseChannel(msg[8]);
 
         // Skip event if type returned is not recognized
         if (!event.type) {
@@ -28,7 +30,11 @@ class SetupEvent extends MixerEvent
         }
 
         let valueFunc = event.getParseValueFunc();
-        event.value = valueFunc(msg.slice(9,13));
+        event.value = msg.slice(9,13);
+
+        if (valueFunc) {
+            event.value = valueFunc(event.value);
+        }
 
         return event;
     }
@@ -42,9 +48,11 @@ class SetupEvent extends MixerEvent
             case SetupElement.SOLO_CH_ON: paramFilter = 0x00; type = MixerEventType.SOLO_CHANNEL; break;
             case SetupElement.SOLO_MASTER_ON: paramFilter = 0x00; type = MixerEventType.SOLO_MASTER; break;
             case SetupElement.GROUP_SOLO_ON: paramFilter = 0x00; type = MixerEventType.SOLO_GROUP; break;
+            case SetupElement.GROUP_SOLO_MASTER_ON: paramFilter = 0x00; type = MixerEventType.SOLO_GROUP_MASTER; break;
             default: return null;
         }
 
+        // Parameter filtering here prevents triggering events on sub-parameter reporting by the mixer
         if (paramFilter !== null && parameter != paramFilter) {
             return null;
         }
@@ -53,12 +61,26 @@ class SetupEvent extends MixerEvent
     }
 
 
+    parseChannel(channel)
+    {
+        if (this.type == MixerEventType.SOLO_MASTER) {
+            this.type = MixerEventType.SOLO_BUS;
+            if (channel >= BUS_COUNT) {
+                channel -= BUS_COUNT;
+                this.type = MixerEventType.SOLO_AUX;
+            }
+        }
+
+        return channel + 1;
+    }
+
     getParseValueFunc()
     {
         switch (this.type) {
             case MixerEventType.SOLO_CHANNEL:
             case MixerEventType.SOLO_MASTER:
             case MixerEventType.SOLO_GROUP:
+            case MixerEventType.SOLO_GROUP_MASTER:
                 return this.parseOnData;
             default: return null;
         }

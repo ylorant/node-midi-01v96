@@ -63,6 +63,38 @@ async function run()
     mixer.setBusLevel(1, 100);
     mixer.getBusLevel(1);
     await sleep(1000);
+
+    console.log("In group master on");
+    mixer.setInGroupMasterOn(1, false)
+    mixer.getInGroupMasterOn(1);
+    await sleep(1000);
+    mixer.setInGroupMasterOn(1, true);
+    mixer.getInGroupMasterOn(1);
+    await sleep(1000);
+
+    console.log("In group master level");
+    mixer.setInGroupMasterLevel(1, 0);
+    mixer.getInGroupMasterLevel(1);
+    await sleep(1000);
+    mixer.setInGroupMasterLevel(1, 100);
+    mixer.getBusLevel(1);
+    await sleep(1000);
+
+    console.log("Out group master on");
+    mixer.setOutGroupMasterOn(1, false)
+    mixer.getOutGroupMasterOn(1);
+    await sleep(1000);
+    mixer.setOutGroupMasterOn(1, true);
+    mixer.getOutGroupMasterOn(1);
+    await sleep(1000);
+
+    console.log("Out group master level");
+    mixer.setOutGroupMasterLevel(1, 0);
+    mixer.getOutGroupMasterLevel(1);
+    await sleep(1000);
+    mixer.setOutGroupMasterLevel(1, 100);
+    mixer.getBusLevel(1);
+    await sleep(1000);
 }
 
 run();

@@ -464,6 +464,138 @@ class Yamaha01v96 extends EventEmitter
         this.parameterRequest(DataType.EDIT_BUFFER, MixerElement.BUS_FADER, 0x00, bus - 1);
     }
 
+    /**
+     * Sets the given inGroup out channel on status.
+     * 
+     * @param {number} inGroup The channel to set the on status of.
+     * @param {bool} status The on status, true for on, false for off.
+     */
+    setInGroupMasterOn(inGroup, status)
+    {
+        if (inGroup < 1 || inGroup > IN_GROUP_COUNT) {
+            this.emit('error', 'Invalid inGroup number ' + inGroup);
+            return;
+        }
+
+        this.emit("debug", "Setting inGroup " + inGroup + " " + (status ? "on" : "off"));
+        this.parameterChange(DataType.EDIT_BUFFER, MixerElement.IN_GROUP_MASTER, 0x02, inGroup - 1, this.on2Data(status));
+    }
+
+    /**
+     * Requests the on status for a given inGroup out channel.
+     * 
+     * @param {number} inGroup The inGroup channel to request the on status of. 
+     */
+    getInGroupMasterOn(inGroup)
+    {
+        if (inGroup < 1 || inGroup > IN_GROUP_COUNT) {
+            this.emit('error', 'Invalid inGroup number ' + inGroup);
+            return;
+        }
+        
+        this.emit("debug", "Requesting inGroup " + inGroup + " on status");
+        this.parameterRequest(DataType.EDIT_BUFFER, MixerElement.IN_GROUP_MASTER, 0x02, inGroup - 1);
+    }
+
+    /**
+     * Sets the given inGroup out channel fader level to the given value.
+     * 
+     * @param {number} inGroup The inGroup channel, between 1-8.
+     * @param {number} level The level, between 0 and 100 (0 being -infinite, 100 being 0db).
+     */
+    setInGroupMasterLevel(inGroup, level)
+    {
+        if (inGroup < 1 || inGroup > IN_GROUP_COUNT) {
+            this.emit('error', 'Invalid inGroup number ' + inGroup);
+            return;
+        }
+
+        this.emit("debug", "Setting inGroup " + inGroup + " level to " + level + "%");
+        this.parameterChange(DataType.EDIT_BUFFER, MixerElement.IN_GROUP_MASTER, 0x00, inGroup - 1, this.fader2Data(level));
+    }
+
+    /**
+     * Requests an inGroup channel level from the mixer.
+     * 
+     * @param {number} inGroup The inGroup channel, between 1-8.
+     */
+    getInGroupMasterLevel(inGroup)
+    {
+        if (inGroup < 1 || inGroup > IN_GROUP_COUNT) {
+            this.emit('error', 'Invalid inGroup number ' + inGroup);
+            return;
+        }
+
+        this.emit("debug", "Requesting inGroup " + inGroup + " level");
+        this.parameterRequest(DataType.EDIT_BUFFER, MixerElement.IN_GROUP_MASTER, 0x00, inGroup - 1);
+    }
+
+    /**
+     * Sets the given outGroup out channel on status.
+     * 
+     * @param {number} outGroup The channel to set the on status of.
+     * @param {bool} status The on status, true for on, false for off.
+     */
+    setOutGroupMasterOn(outGroup, status)
+    {
+        if (outGroup < 1 || outGroup > OUT_GROUP_COUNT) {
+            this.emit('error', 'Invalid outGroup number ' + outGroup);
+            return;
+        }
+
+        this.emit("debug", "Setting outGroup " + outGroup + " " + (status ? "on" : "off"));
+        this.parameterChange(DataType.EDIT_BUFFER, MixerElement.OUT_GROUP_MASTER, 0x02, outGroup - 1, this.on2Data(status));
+    }
+
+    /**
+     * Requests the on status for a given outGroup out channel.
+     * 
+     * @param {number} outGroup The outGroup channel to request the on status of. 
+     */
+    getOutGroupMasterOn(outGroup)
+    {
+        if (outGroup < 1 || outGroup > OUT_GROUP_COUNT) {
+            this.emit('error', 'Invalid outGroup number ' + outGroup);
+            return;
+        }
+        
+        this.emit("debug", "Requesting outGroup " + outGroup + " on status");
+        this.parameterRequest(DataType.EDIT_BUFFER, MixerElement.OUT_GROUP_MASTER, 0x02, outGroup - 1);
+    }
+
+    /**
+     * Sets the given outGroup out channel fader level to the given value.
+     * 
+     * @param {number} outGroup The outGroup channel, between 1-8.
+     * @param {number} level The level, between 0 and 100 (0 being -infinite, 100 being 0db).
+     */
+    setOutGroupMasterLevel(outGroup, level)
+    {
+        if (outGroup < 1 || outGroup > OUT_GROUP_COUNT) {
+            this.emit('error', 'Invalid outGroup number ' + outGroup);
+            return;
+        }
+
+        this.emit("debug", "Setting outGroup " + outGroup + " level to " + level + "%");
+        this.parameterChange(DataType.EDIT_BUFFER, MixerElement.OUT_GROUP_MASTER, 0x00, outGroup - 1, this.fader2Data(level));
+    }
+
+    /**
+     * Requests an outGroup channel level from the mixer.
+     * 
+     * @param {number} outGroup The outGroup channel, between 1-8.
+     */
+    getOutGroupMasterLevel(outGroup)
+    {
+        if (outGroup < 1 || outGroup > OUT_GROUP_COUNT) {
+            this.emit('error', 'Invalid outGroup number ' + outGroup);
+            return;
+        }
+
+        this.emit("debug", "Requesting outGroup " + outGroup + " level");
+        this.parameterRequest(DataType.EDIT_BUFFER, MixerElement.OUT_GROUP_MASTER, 0x00, outGroup - 1);
+    }
+
     // Library management (stores/recalls)
 
     libraryStoreRecall(func, parameter, channel = null)

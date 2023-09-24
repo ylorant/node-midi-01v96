@@ -264,6 +264,12 @@ class Yamaha01v96 extends EventEmitter
 
     // Buffer edit (direct edit actions)
 
+    /**
+     * Sets the given input channel on status.
+     * 
+     * @param {number} channel The channel to set the on status of.
+     * @param {bool} status The on status, true for on, false for off.
+     */
     setChannelOn(channel, status)
     {
         if (channel < 1 || channel > CHANNEL_COUNT) {
@@ -275,6 +281,11 @@ class Yamaha01v96 extends EventEmitter
         this.parameterChange(DataType.EDIT_BUFFER, MixerElement.CHANNEL_ON, 0x00, channel - 1, this.on2Data(status));
     }
 
+    /**
+     * Requests the on status for a given input channel.
+     * 
+     * @param {number} channel The channel to request the on status of. 
+     */
     getChannelOn(channel)
     {
         if (channel < 1 || channel > CHANNEL_COUNT) {
@@ -319,6 +330,138 @@ class Yamaha01v96 extends EventEmitter
 
         this.emit("debug", "Requesting channel " + channel + " level");
         this.parameterRequest(DataType.EDIT_BUFFER, MixerElement.CHANNEL_FADER, 0x00, channel - 1);
+    }
+
+    /**
+     * Sets the given aux out channel on status.
+     * 
+     * @param {number} aux The channel to set the on status of.
+     * @param {bool} status The on status, true for on, false for off.
+     */
+    setAuxOn(aux, status)
+    {
+        if (aux < 1 || aux > AUX_COUNT) {
+            this.emit('error', 'Invalid aux number ' + aux);
+            return;
+        }
+
+        this.emit("debug", "Setting aux " + aux + " " + (status ? "on" : "off"));
+        this.parameterChange(DataType.EDIT_BUFFER, MixerElement.AUX_ON, 0x00, aux - 1, this.on2Data(status));
+    }
+
+    /**
+     * Requests the on status for a given aux out channel.
+     * 
+     * @param {number} aux The aux channel to request the on status of. 
+     */
+    getAuxOn(aux)
+    {
+        if (aux < 1 || aux > AUX_COUNT) {
+            this.emit('error', 'Invalid aux number ' + aux);
+            return;
+        }
+        
+        this.emit("debug", "Requesting aux " + aux + " on status");
+        this.parameterRequest(DataType.EDIT_BUFFER, MixerElement.AUX_ON, 0x00, aux - 1);
+    }
+
+    /**
+     * Sets the given aux out channel fader level to the given value.
+     * 
+     * @param {number} aux The aux channel, between 1-8.
+     * @param {number} level The level, between 0 and 100 (0 being -infinite, 100 being 0db).
+     */
+    setAuxLevel(aux, level)
+    {
+        if (aux < 1 || aux > AUX_COUNT) {
+            this.emit('error', 'Invalid aux number ' + aux);
+            return;
+        }
+
+        this.emit("debug", "Setting aux " + aux + " level to " + level + "%");
+        this.parameterChange(DataType.EDIT_BUFFER, MixerElement.AUX_FADER, 0x00, aux - 1, this.fader2Data(level, true));
+    }
+
+    /**
+     * Requests an aux channel level from the mixer.
+     * 
+     * @param {number} aux The aux channel, between 1-8.
+     */
+    getAuxLevel(aux)
+    {
+        if (aux < 1 || aux > AUX_COUNT) {
+            this.emit('error', 'Invalid aux number ' + aux);
+            return;
+        }
+
+        this.emit("debug", "Requesting aux " + aux + " level");
+        this.parameterRequest(DataType.EDIT_BUFFER, MixerElement.AUX_FADER, 0x00, aux - 1);
+    }
+
+    /**
+     * Sets the given bus out channel on status.
+     * 
+     * @param {number} bus The channel to set the on status of.
+     * @param {bool} status The on status, true for on, false for off.
+     */
+    setBusOn(bus, status)
+    {
+        if (bus < 1 || bus > BUS_COUNT) {
+            this.emit('error', 'Invalid bus number ' + bus);
+            return;
+        }
+
+        this.emit("debug", "Setting bus " + bus + " " + (status ? "on" : "off"));
+        this.parameterChange(DataType.EDIT_BUFFER, MixerElement.BUS_ON, 0x00, bus - 1, this.on2Data(status));
+    }
+
+    /**
+     * Requests the on status for a given bus out channel.
+     * 
+     * @param {number} bus The bus channel to request the on status of. 
+     */
+    getBusOn(bus)
+    {
+        if (bus < 1 || bus > BUS_COUNT) {
+            this.emit('error', 'Invalid bus number ' + bus);
+            return;
+        }
+        
+        this.emit("debug", "Requesting bus " + bus + " on status");
+        this.parameterRequest(DataType.EDIT_BUFFER, MixerElement.BUS_ON, 0x00, bus - 1);
+    }
+
+    /**
+     * Sets the given bus out channel fader level to the given value.
+     * 
+     * @param {number} bus The bus channel, between 1-8.
+     * @param {number} level The level, between 0 and 100 (0 being -infinite, 100 being 0db).
+     */
+    setBusLevel(bus, level)
+    {
+        if (bus < 1 || bus > BUS_COUNT) {
+            this.emit('error', 'Invalid bus number ' + bus);
+            return;
+        }
+
+        this.emit("debug", "Setting bus " + bus + " level to " + level + "%");
+        this.parameterChange(DataType.EDIT_BUFFER, MixerElement.BUS_FADER, 0x00, bus - 1, this.fader2Data(level, true));
+    }
+
+    /**
+     * Requests an bus channel level from the mixer.
+     * 
+     * @param {number} bus The bus channel, between 1-8.
+     */
+    getBusLevel(bus)
+    {
+        if (bus < 1 || bus > BUS_COUNT) {
+            this.emit('error', 'Invalid bus number ' + bus);
+            return;
+        }
+
+        this.emit("debug", "Requesting bus " + bus + " level");
+        this.parameterRequest(DataType.EDIT_BUFFER, MixerElement.BUS_FADER, 0x00, bus - 1);
     }
 
     // Library management (stores/recalls)

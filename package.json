@@ -1,6 +1,6 @@
 {
   "name": "midi-01v96",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "NodeJS library to control Yamaha 01v96 mixers through MIDI",
   "main": "src/index.js",
   "scripts": {

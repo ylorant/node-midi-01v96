@@ -47,8 +47,8 @@ class SetupEvent extends MixerEvent
         switch (element) {
             case SetupElement.SOLO_CH_ON: paramFilter = 0x00; type = MixerEventType.SOLO_CHANNEL; break;
             case SetupElement.SOLO_MASTER_ON: paramFilter = 0x00; type = MixerEventType.SOLO_MASTER; break;
-            case SetupElement.GROUP_SOLO_ON: paramFilter = 0x00; type = MixerEventType.SOLO_GROUP; break;
-            case SetupElement.GROUP_SOLO_MASTER_ON: paramFilter = 0x00; type = MixerEventType.SOLO_GROUP_MASTER; break;
+            case SetupElement.GROUP_SOLO_ON: paramFilter = 0x00; type = MixerEventType.SOLO_IN_GROUP_MASTER; break;
+            case SetupElement.GROUP_SOLO_MASTER_ON: paramFilter = 0x00; type = MixerEventType.SOLO_OUT_GROUP_MASTER; break;
             default: return null;
         }
 
@@ -79,8 +79,8 @@ class SetupEvent extends MixerEvent
         switch (this.type) {
             case MixerEventType.SOLO_CHANNEL:
             case MixerEventType.SOLO_MASTER:
-            case MixerEventType.SOLO_GROUP:
-            case MixerEventType.SOLO_GROUP_MASTER:
+            case MixerEventType.SOLO_IN_GROUP_MASTER:
+            case MixerEventType.SOLO_OUT_GROUP_MASTER:
                 return this.parseOnData;
             default: return null;
         }

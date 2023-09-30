@@ -22,7 +22,7 @@ class SceneEvent extends MixerEvent
     static fromMessage(msg, mixer)
     {
         let event = new SceneEvent();
-        event.type = event.typeFromMixerElement(msg[6]) ?? event.type;
+        event.type = event.typeFromMixerElement(msg[6], msg[7]) ?? event.type;
         event.channel = event.parseChannel(msg[8]);
         
         // Getting the value parsing function and computing the value with it
@@ -31,12 +31,14 @@ class SceneEvent extends MixerEvent
 
         if (parseValueFunc) {
             event.value = parseValueFunc.call(this, msg.slice(9, 13), mixer);
+        } else {
+            event.value = msg.slice(9, 13);
         }
 
         return event;
     }
 
-    typeFromMixerElement(mixerEl)
+    typeFromMixerElement(mixerEl, param)
     {
         switch (mixerEl) {
             case MixerElement.CHANNEL_FADER: return MixerEventType.CHANNEL_LEVEL;
@@ -45,6 +47,10 @@ class SceneEvent extends MixerEvent
             case MixerElement.BUS_ON: return MixerEventType.BUS_ON;
             case MixerElement.AUX_FADER: return MixerEventType.AUX_LEVEL;
             case MixerElement.AUX_ON: return MixerEventType.AUX_ON;
+            case MixerElement.IN_GROUP_MASTER:
+                return (param == 0x00 ? MixerEventType.IN_GROUP_MASTER_LEVEL : MixerEventType.IN_GROUP_MASTER_ON);
+            case MixerElement.OUT_GROUP_MASTER:
+                return (param == 0x00 ? MixerEventType.OUT_GROUP_MASTER_LEVEL : MixerEventType.OUT_GROUP_MASTER_ON);
             default: return null;
         }
     }
@@ -59,11 +65,15 @@ class SceneEvent extends MixerEvent
         switch (this.type) {
             case MixerEventType.CHANNEL_LEVEL: 
             case MixerEventType.BUS_LEVEL: 
-            case MixerEventType.AUX_LEVEL: 
+            case MixerEventType.AUX_LEVEL:
+            case MixerEventType.IN_GROUP_MASTER_LEVEL:
+            case MixerEventType.OUT_GROUP_MASTER_LEVEL:
                 return this.parseFaderData;
             case MixerEventType.CHANNEL_ON: 
             case MixerEventType.BUS_ON: 
-            case MixerEventType.AUX_ON: 
+            case MixerEventType.AUX_ON:
+            case MixerEventType.IN_GROUP_MASTER_ON:
+            case MixerEventType.OUT_GROUP_MASTER_ON:
                 return this.parseOnData;
             default: return null;
         }

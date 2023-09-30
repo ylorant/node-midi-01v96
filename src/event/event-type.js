@@ -11,6 +11,10 @@ let MixerEventType = {
     AUX_ON: "auxOn",
     BUS_LEVEL: "busLevel",
     BUS_ON: "busOn",
+    IN_GROUP_MASTER_LEVEL: "inGroupMasterLevel",
+    IN_GROUP_MASTER_ON: "inGroupMasterOn",
+    OUT_GROUP_MASTER_LEVEL: "outGroupMasterLevel",
+    OUT_GROUP_MASTER_ON: "outGroupMasterOn",
 
     // Function call types
     SCENE_RECALL: "sceneRecall",
@@ -21,8 +25,8 @@ let MixerEventType = {
     SOLO_MASTER: "soloMaster",
     SOLO_AUX: "soloAux",
     SOLO_BUS: "soloBus",
-    SOLO_GROUP: "soloGroup",
-    SOLO_GROUP_MASTER: "soloGroupMaster"
+    SOLO_IN_GROUP_MASTER: "soloInGroupMaster",
+    SOLO_OUT_GROUP_MASTER: "soloOutGroupMaster"
 }
 
 module.exports = MixerEventType;

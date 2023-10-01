@@ -79,6 +79,8 @@ class SetupEvent extends MixerEvent
         switch (this.type) {
             case MixerEventType.SOLO_CHANNEL:
             case MixerEventType.SOLO_MASTER:
+            case MixerEventType.SOLO_AUX:
+            case MixerEventType.SOLO_BUS:
             case MixerEventType.SOLO_IN_GROUP_MASTER:
             case MixerEventType.SOLO_OUT_GROUP_MASTER:
                 return this.parseOnData;

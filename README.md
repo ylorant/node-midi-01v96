@@ -45,11 +45,27 @@ from the mixer.
 
 - `getChannelLevel(channel)` : Requests the fader level for the given channel.
 - `getChannelOn(channel)` : Requests the channel on status for the given channel.
+- `getAuxLevel(channel)` : Requests the fader level for the given auxiliary output.
+- `getAuxOn(channel)` : Requests the channel on status for the given auxiliary output.
+- `getBusLevel(channel)` : Requests the fader level for the given bus.
+- `getBusOn(channel)` : Requests the channel on status for the given bus.
+- `getInGroupMasterLevel(channel)` : Requests the fader level for the given input group master fader.
+- `getInGroupMasterOn(channel)` : Requests the channel on status for the given input group master fader.
+- `getOutGroupMasterLevel(channel)` : Requests the fader level for the given output group master fader.
+- `getOutGroupMasterOn(channel)` : Requests the channel on status for the given output group master fader.
 
 ### Write
 
 - `setChannelLevel(channel, level)` : Sets the channel level for given channel.
 - `setChannelOn(channel, status)` : Sets the channel on status for the given channel.
+- `setAuxLevel(channel, level)` : Sets the channel level for given auxiliary output.
+- `setAuxOn(channel, status)` : Sets the channel on status for the given auxiliary output.
+- `setBusLevel(channel, level)` : Sets the channel level for given bus.
+- `setBusOn(channel, status)` : Sets the channel on status for the given bus.
+- `setInGroupMasterLevel(channel, level)` : Sets the channel level for given input group master fader.
+- `setInGroupMasterOn(channel, status)` : Sets the channel on status for the given input group master fader.
+- `setOutGroupMasterLevel(channel, level)` : Sets the channel level for given output group master fader.
+- `setOutGroupMasterOn(channel, status)` : Sets the channel on status for the given output group master fader.
 
 ### Settings
 
